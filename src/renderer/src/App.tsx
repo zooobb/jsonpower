@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Editor } from './components/Editor'
+import jsonIcon from './assets/jsonIcon.png'
 
 const styles = {
   container: {
     width: '100vw',
     height: '100vh',
     display: 'flex',
-    flexDirection: 'column' as const,
-    backgroundColor: '#1e1e1e'
+    flexDirection: 'column' as const
   },
   title: {
     margin: 0,
@@ -16,49 +16,114 @@ const styles = {
   },
   main: {
     flex: 1,
+    display: 'flex',
     overflow: 'hidden'
+  },
+  editorContainer: {
+    flex: 1,
+    position: 'relative' as const,
+    height: '100%'
+  },
+  resultContainer: {
+    flex: 1,
+    position: 'relative' as const,
+    height: '100%',
+    borderLeft: '1px solid #3d3d3d'
+  },
+  editorWrapper: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0
   },
   toolbar: {
     height: '40px',
-    backgroundColor: '#2d2d2d',
-    borderTop: '1px solid #3d3d3d',
+    borderTop: '1px solid #E6E6E6',
     display: 'flex',
     alignItems: 'center',
-    padding: '0 16px',
-    gap: '12px'
+    padding: '0',
+    gap: '12px',
+    backgroundColor: '#F6F7F8'
   },
   toolButton: {
-    padding: '4px 8px',
-    backgroundColor: '#3d3d3d',
+    padding: '4px',
     border: 'none',
     borderRadius: '4px',
-    color: '#ffffff',
     cursor: 'pointer',
-    fontSize: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
     '&:hover': {
-      backgroundColor: '#4d4d4d'
+      backgroundColor: '#ECEDEE'
     }
+  },
+  buttonIcon: {
+    width: '16px',
+    height: '16px',
+    objectFit: 'contain' as const
   },
   input: {
     flex: 1,
-    backgroundColor: '#3d3d3d',
     border: 'none',
     borderRadius: '4px',
-    color: '#ffffff',
-    padding: '4px 8px',
+    padding: '0 8px',
     fontSize: '12px',
-    outline: 'none'
+    outline: 'none',
+    backgroundColor: '#ffffff',
+    height: '100%',
+    maxWidth: '400px'
+  },
+  thisBar: {
+    color: '#666666',
+    backgroundColor: '#F6F7F8',
+    padding: '0 12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopRightRadius: '4px',
+    borderBottomRightRadius: '4px',
+    height: '100%',
+    width: '35px',
+    fontSize: '16px',
+    fontWeight: 500,
+    lineHeight: '40px'
   }
 }
 
 function App(): JSX.Element {
   const [expression, setExpression] = useState('')
   const [editorContent, setEditorContent] = useState('')
+  const [originalJson, setOriginalJson] = useState<any>(null)
+  const [resultContent, setResultContent] = useState('')
+
+  const handleEditorChange = (content: string) => {
+    setEditorContent(content)
+    try {
+      const jsonData = JSON.parse(content)
+      setOriginalJson(jsonData)
+    } catch (error) {
+      // 如果解析失败，不更新 originalJson
+      console.debug('JSON解析失败:', error)
+    }
+  }
+
+  const handleExpressionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newExpression = e.target.value
+    setExpression(newExpression)
+    if (!newExpression.trim()) {
+      setResultContent('')
+    }
+  }
 
   const handleFormat = () => {
     try {
       // 尝试解析JSON
       const jsonData = JSON.parse(editorContent)
+      // 保存原始JSON数据
+      setOriginalJson(jsonData)
       // 格式化JSON
       const formatted = JSON.stringify(jsonData, null, 2)
       setEditorContent(formatted)
@@ -69,49 +134,72 @@ function App(): JSX.Element {
 
   const handleExpressionExecute = () => {
     try {
-      if (!expression.trim()) return
+      if (!expression.trim() || originalJson === null) {
+        setResultContent('')
+        return
+      }
 
-      const jsonData = JSON.parse(editorContent)
       let result
 
-      // 如果json是数组格式
-      if (jsonData.startsWith('[')) {
-      }
-
-      if (expression.startsWith('.')) {
-        // 处理简化的方法调用语法
+      // 如果是数组索引访问
+      if (/^\[\d+\]$/.test(expression)) {
+        const index = parseInt(expression.slice(1, -1))
+        result = Array.isArray(originalJson) ? originalJson[index] : undefined
+      } else if (expression.startsWith('.')) {
+        // 处理简化的方法调用语法（如 .map()）
         const expressionWithThis = `this${expression}`
-        const fn = new Function('this', `return ${expressionWithThis}`)
-        result = fn.call(jsonData)
+        result = new Function('return ' + expressionWithThis).call(originalJson)
       } else {
-        // 保持原有的完整表达式执行方式
-        const fn = new Function('data', `return ${expression}`)
-        result = fn(jsonData)
+        // 处理完整表达式（如 data.filter()）
+        result = new Function('data', 'return ' + expression)(originalJson)
       }
 
-      // 将结果转换回JSON字符串
-      setEditorContent(JSON.stringify(result, null, 2))
+      if (result !== undefined) {
+        setResultContent(JSON.stringify(result, null, 2))
+      } else {
+        setResultContent('')
+      }
     } catch (error) {
       console.error('表达式执行失败:', error)
+      setResultContent('')
     }
   }
 
   return (
     <div style={styles.container}>
       <main style={styles.main}>
-        <Editor value={editorContent} onChange={setEditorContent} />
+        <div
+          style={{
+            ...styles.editorContainer,
+            flex: resultContent ? '0 0 50%' : 1
+          }}
+        >
+          <div style={styles.editorWrapper}>
+            <Editor value={editorContent} onChange={handleEditorChange} />
+          </div>
+        </div>
+        {resultContent && (
+          <div style={styles.resultContainer}>
+            <div style={styles.editorWrapper}>
+              <Editor value={resultContent} onChange={() => {}} />
+            </div>
+          </div>
+        )}
       </main>
       <div style={styles.toolbar}>
-        <button style={styles.toolButton} onClick={handleFormat}>
-          格式化
-        </button>
+        <div style={styles.thisBar}>
+          <span>this</span>
+        </div>
         <input
           style={styles.input}
           placeholder="输入js表达式(如 .map(i => i.name))或过滤(如 .filter(x => x > 1))"
           value={expression}
-          onChange={(e) => setExpression(e.target.value)}
+          onChange={handleExpressionChange}
           onKeyDown={(e) => e.key === 'Enter' && handleExpressionExecute()}
         />
+        <button style={styles.toolButton} onClick={handleFormat}>
+          <img src={jsonIcon} style={styles.buttonIcon} alt="格式化" />
+        </button>
       </div>
     </div>
   )
