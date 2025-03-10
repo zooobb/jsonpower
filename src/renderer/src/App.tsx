@@ -1,13 +1,19 @@
 import { useState } from 'react'
 import { Editor } from './components/Editor'
+import { Sidebar } from './components/Sidebar'
 import jsonIcon from './assets/jsonIcon.png'
 
 const styles = {
   container: {
     width: '100vw',
     height: '100vh',
+    display: 'flex'
+  },
+  mainContent: {
+    flex: 1,
     display: 'flex',
-    flexDirection: 'column' as const
+    flexDirection: 'column' as const,
+    height: '100%'
   },
   title: {
     margin: 0,
@@ -98,6 +104,7 @@ function App(): JSX.Element {
   const [editorContent, setEditorContent] = useState('')
   const [originalJson, setOriginalJson] = useState<any>(null)
   const [resultContent, setResultContent] = useState('')
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   const handleEditorChange = (content: string) => {
     setEditorContent(content)
@@ -167,39 +174,45 @@ function App(): JSX.Element {
 
   return (
     <div style={styles.container}>
-      <main style={styles.main}>
-        <div
-          style={{
-            ...styles.editorContainer,
-            flex: resultContent ? '0 0 50%' : 1
-          }}
-        >
-          <div style={styles.editorWrapper}>
-            <Editor value={editorContent} onChange={handleEditorChange} />
-          </div>
-        </div>
-        {resultContent && (
-          <div style={styles.resultContainer}>
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
+      <div style={styles.mainContent}>
+        <main style={styles.main}>
+          <div
+            style={{
+              ...styles.editorContainer,
+              flex: resultContent ? '0 0 50%' : 1
+            }}
+          >
             <div style={styles.editorWrapper}>
-              <Editor value={resultContent} onChange={() => {}} />
+              <Editor value={editorContent} onChange={handleEditorChange} />
             </div>
           </div>
-        )}
-      </main>
-      <div style={styles.toolbar}>
-        <div style={styles.thisBar}>
-          <span>this</span>
+          {resultContent && (
+            <div style={styles.resultContainer}>
+              <div style={styles.editorWrapper}>
+                <Editor value={resultContent} onChange={() => {}} />
+              </div>
+            </div>
+          )}
+        </main>
+        <div style={styles.toolbar}>
+          <div style={styles.thisBar}>
+            <span>this</span>
+          </div>
+          <input
+            style={styles.input}
+            placeholder="输入js表达式(如 .map(i => i.name))或过滤(如 .filter(x => x > 1))"
+            value={expression}
+            onChange={handleExpressionChange}
+            onKeyDown={(e) => e.key === 'Enter' && handleExpressionExecute()}
+          />
+          <button style={styles.toolButton} onClick={handleFormat}>
+            <img src={jsonIcon} style={styles.buttonIcon} alt="格式化" />
+          </button>
         </div>
-        <input
-          style={styles.input}
-          placeholder="输入js表达式(如 .map(i => i.name))或过滤(如 .filter(x => x > 1))"
-          value={expression}
-          onChange={handleExpressionChange}
-          onKeyDown={(e) => e.key === 'Enter' && handleExpressionExecute()}
-        />
-        <button style={styles.toolButton} onClick={handleFormat}>
-          <img src={jsonIcon} style={styles.buttonIcon} alt="格式化" />
-        </button>
       </div>
     </div>
   )
