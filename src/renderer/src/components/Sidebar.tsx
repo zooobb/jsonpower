@@ -1,9 +1,17 @@
 import React from 'react'
+import { useState } from 'react'
 
 interface SidebarProps {
   className?: string
   isCollapsed: boolean
   onToggle: () => void
+}
+
+interface RecentItem {
+  id: string
+  title: string
+  timestamp: string
+  preview: string
 }
 
 const styles = {
@@ -15,21 +23,23 @@ const styles = {
   sidebar: {
     width: '240px',
     height: '100%',
-    backgroundColor: '#1e1e1e',
-    borderRight: '1px solid #3d3d3d',
+    backgroundColor: '#F6F7F8',
+    borderRight: '1px solid #E6E6E6',
     display: 'flex',
     flexDirection: 'column' as const,
-    color: '#ffffff',
+    color: '#666666',
     transition: 'all 0.3s ease'
   },
   collapsedSidebar: {
     width: '0px',
     overflow: 'hidden',
-    borderRight: 'none'
+    borderRight: 'none',
+    padding: 0,
+    visibility: 'hidden' as const
   },
   header: {
-    padding: '16px',
-    borderBottom: '1px solid #3d3d3d'
+    padding: '5px',
+    borderBottom: '1px solid #E6E6E6'
   },
   title: {
     fontSize: '16px',
@@ -41,6 +51,48 @@ const styles = {
     padding: '16px',
     overflowY: 'auto' as const
   },
+  listContainer: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '12px'
+  },
+  listItem: {
+    padding: '12px',
+    backgroundColor: '#ffffff',
+    borderRadius: '6px',
+    border: '1px solid #E6E6E6',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      backgroundColor: '#ECEDEE',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+    }
+  },
+  itemTitle: {
+    fontSize: '14px',
+    fontWeight: 500,
+    color: '#333333',
+    marginBottom: '4px'
+  },
+  itemPreview: {
+    fontSize: '12px',
+    color: '#666666',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const
+  },
+  itemTime: {
+    fontSize: '11px',
+    color: '#999999',
+    marginTop: '4px'
+  },
+  emptyState: {
+    textAlign: 'center' as const,
+    color: '#999999',
+    fontSize: '14px',
+    padding: '20px 0'
+  },
   toggleButton: {
     position: 'absolute' as const,
     right: '-12px',
@@ -48,23 +100,39 @@ const styles = {
     transform: 'translateY(-50%)',
     width: '24px',
     height: '24px',
-    backgroundColor: '#1e1e1e',
-    border: '1px solid #3d3d3d',
+    backgroundColor: '#F6F7F8',
+    border: '1px solid #E6E6E6',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    color: '#ffffff',
+    color: '#666666',
     zIndex: 10,
-    transition: 'transform 0.3s ease',
+    transition: 'all 0.3s ease',
     '&:hover': {
-      backgroundColor: '#2d2d2d'
+      backgroundColor: '#ECEDEE'
     }
   }
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ className, isCollapsed, onToggle }) => {
+  // 这里使用模拟数据，实际使用时需要通过props传入或从存储中获取
+  const [recentItems] = useState<RecentItem[]>([
+    {
+      id: '1',
+      title: '用户配置',
+      preview: '{ "name": "John", "age": 30 }',
+      timestamp: '10分钟前'
+    },
+    {
+      id: '2',
+      title: '系统设置',
+      preview: '{ "theme": "light", "language": "zh" }',
+      timestamp: '30分钟前'
+    }
+  ])
+
   return (
     <div style={styles.container}>
       <div
@@ -74,10 +142,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, isCollapsed, onTogg
           ...(className ? { className } : {})
         }}
       >
-        <div style={styles.header}>
-          <h2 style={styles.title}>JSON Power</h2>
-        </div>
-        <div style={styles.content}>{/* 这里可以添加侧边栏的内容 */}</div>
+        {!isCollapsed && (
+          <>
+            {/* <div style={styles.header}>
+              <h3 style={styles.title}>最近json</h3>
+            </div> */}
+            <div style={styles.content}>
+              <div style={styles.listContainer}>
+                {recentItems.length > 0 ? (
+                  recentItems.map((item) => (
+                    <div key={item.id} style={styles.listItem}>
+                      <div style={styles.itemTitle}>{item.title}</div>
+                      <div style={styles.itemPreview}>{item.preview}</div>
+                      <div style={styles.itemTime}>{item.timestamp}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={styles.emptyState}>暂无最近记录</div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
       <div
         style={styles.toggleButton}

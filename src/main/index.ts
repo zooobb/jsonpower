@@ -1,7 +1,10 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+// 启用全局快捷键
+app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal')
 
 function createWindow(): void {
   // Create the browser window.
@@ -53,6 +56,34 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+  // 注册一个全局键盘事件
+  const ret = globalShortcut.register('Option+Command+J', () => {
+    // console.log('Option+Command+J 全局键盘事件')
+    dialog
+      .showOpenDialog(BrowserWindow.getFocusedWindow()!, {
+        title: '选择文件',
+        defaultPath: '/path/to/default/folder',
+        buttonLabel: '选择',
+        properties: ['openFile', 'multiSelections']
+      })
+      .then((result) => {
+        console.log(result.filePaths)
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+  })
+
+  if (!ret) {
+    console.log('Option+Command+J 全局快捷键注册失败')
+  }
+  // 检查键盘事件是否注册成功
+  const isRegistered = globalShortcut.isRegistered('Option+Command+J')
+  if (isRegistered) {
+    console.log('Option+Command+J 全局快捷键注册成功')
+  } else {
+    console.log('Option+Command+J 全局快捷键注册失败')
+  }
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
@@ -60,8 +91,7 @@ app.whenReady().then(() => {
   createWindow()
 
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
+    // 在macOS上，当点击Dock图标且没有其他窗口打开时，通常会在应用程序中重新创建一个窗口
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
@@ -72,6 +102,11 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   // 修改为在所有窗口关闭时直接退出应用
   app.quit()
+})
+
+app.on('will-quit', () => {
+  // 注销所有快捷键
+  globalShortcut.unregisterAll()
 })
 
 // 确保应用退出时清理资源
