@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Editor } from './components/Editor'
 import { Sidebar } from './components/Sidebar'
 import jsonIcon from './assets/jsonIcon.png'
@@ -105,6 +105,30 @@ function App(): JSX.Element {
   const [originalJson, setOriginalJson] = useState<any>(null)
   const [resultContent, setResultContent] = useState('')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+
+  useEffect(() => {
+    console.log('Setting up IPC listener in main window')
+    // 监听来自搜索窗口的JSON格式化请求
+    window.electron.ipcRenderer.on('format-json-in-editor', (jsonText: string) => {
+      console.log('Received format-json-in-editor event with data:', jsonText)
+      try {
+        // 解析JSON并格式化
+        const formattedJson = JSON.stringify(JSON.parse(jsonText), null, 2)
+        console.log('Formatted JSON:', formattedJson)
+        // 更新编辑器内容
+        setEditorContent(formattedJson)
+        // 更新原始JSON数据
+        setOriginalJson(JSON.parse(jsonText))
+        console.log('Editor content updated')
+      } catch (error) {
+        console.error('Invalid JSON:', error)
+      }
+    })
+
+    // 测试 IPC 是否正常工作
+    console.log('Testing IPC connection...')
+    window.electron.ipcRenderer.send('ping')
+  }, [])
 
   const handleEditorChange = (content: string) => {
     setEditorContent(content)

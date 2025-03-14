@@ -12,10 +12,15 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange }) => {
   const isFormatting = useRef(false)
 
   useEffect(() => {
-    if (editorRef.current && value !== editorRef.current.getValue()) {
-      isFormatting.current = true
-      editorRef.current.setValue(value)
-      isFormatting.current = false
+    if (editorRef.current) {
+      console.log('Editor value changed:', value)
+      const currentValue = editorRef.current.getValue()
+      if (value !== currentValue) {
+        console.log('Updating editor value')
+        isFormatting.current = true
+        editorRef.current.setValue(value)
+        isFormatting.current = false
+      }
     }
   }, [value])
 
@@ -41,6 +46,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange }) => {
   }
 
   const editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
+    console.log('Editor mounted')
     editorRef.current = editor
 
     // 配置严格的 JSON 语言特性
@@ -64,6 +70,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange }) => {
       const model = editor.getModel()
       if (model) {
         const content = model.getValue().trim()
+        console.log('Content changed:', content)
         // 如果内容为空，清除所有错误标记
         if (!content) {
           monaco.editor.setModelMarkers(model, 'json', [])
@@ -92,6 +99,7 @@ export const Editor: React.FC<EditorProps> = ({ value, onChange }) => {
     })
 
     // 初始化时设置默认值
+    console.log('Initial editor value:', value)
     if (!value) {
       editor.setValue('{\n}')
     } else {
